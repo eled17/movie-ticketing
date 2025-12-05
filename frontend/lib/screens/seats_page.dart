@@ -26,15 +26,17 @@ class _SeatsPageState extends State<SeatsPage> {
     try {
       final data = await ApiService.getTickets(widget.showtimeId);
       setState(() {
-        bookedSeats = data.map<String>((ticket) => ticket['seat_number']).toSet();
+        bookedSeats =
+            data.map<String>((ticket) => ticket['seat_number']).toSet();
       });
     } catch (e) {
       print("Error fetching booked seats: $e");
     }
   }
 
-
   void toggleSeatSelection(String seat) {
+    if (bookedSeats.contains(seat)) return;
+
     setState(() {
       if (selectedSeats.contains(seat)) {
         selectedSeats.remove(seat);
@@ -44,33 +46,10 @@ class _SeatsPageState extends State<SeatsPage> {
     });
   }
 
-  void bookSelectedSeats() async {
-    if (selectedSeats.isEmpty) return;
-
-    try {
-      for (String seat in selectedSeats) {
-        await ApiService.bookTicket(widget.showtimeId, seat);
-      }
-      // After booking, refresh booked seats and clear selection
-      await loadBookedSeats();
-      setState(() {
-        selectedSeats.clear();
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Tickets booked successfully!")),
-      );
-    } catch (e) {
-      print("Error booking tickets: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Failed to book tickets")),
-      );
-    }
-  }
-
   Color getSeatColor(String seat) {
     if (bookedSeats.contains(seat)) return Colors.red;
-    if (hoveredSeat == seat) return Colors.yellow;
     if (selectedSeats.contains(seat)) return Colors.blue;
+    if (hoveredSeat == seat) return Colors.yellow;
     return Colors.green;
   }
 
@@ -80,54 +59,101 @@ class _SeatsPageState extends State<SeatsPage> {
       appBar: AppBar(
         title: Text("Select Seats"),
       ),
-      body: GridView.count(
-        crossAxisCount: 5,
-        padding: EdgeInsets.all(16),
-        children: seats.map((seat) {
-          return MouseRegion(
-            onEnter: (_) {
-              setState(() {
-                hoveredSeat = seat;
-              });
-            },
-            onExit: (_) {
-              setState(() {
-                if (hoveredSeat == seat) hoveredSeat = null;
-              });
-            },
-            child: GestureDetector(
-              onTap: bookedSeats.contains(seat)
-                  ? null
-                  : () {
-                      toggleSeatSelection(seat);
-                    },
-              child: Container(
-                margin: EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: getSeatColor(seat),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Center(
-                  child: Text(
-                    seat,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+      body: Column(
+        children: [
+          SizedBox(height: 16),
+
+          /// SCREEN INDICATOR
+          Container(
+            width: double.infinity,
+            height: 40,
+            margin: EdgeInsets.symmetric(horizontal: 40),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              "SCREEN",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
               ),
             ),
-          );
-        }).toList(),
+          ),
+
+          SizedBox(height: 30),
+
+          /// SEATS GRID
+          Expanded(
+            child: GridView.builder(
+              padding: EdgeInsets.symmetric(horizontal: 60),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 6,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+              ),
+              itemCount: seats.length,
+              itemBuilder: (context, index) {
+                String seat = seats[index];
+
+                return MouseRegion(
+                  onEnter: (_) => setState(() => hoveredSeat = seat),
+                  onExit: (_) => setState(() {
+                    if (hoveredSeat == seat) hoveredSeat = null;
+                  }),
+                  child: GestureDetector(
+                    onTap: () => toggleSeatSelection(seat),
+                    child: AnimatedContainer(
+                      duration: Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: getSeatColor(seat),
+                        borderRadius: BorderRadius.circular(50),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: selectedSeats.contains(seat) ? 8 : 2,
+                            offset: Offset(0, 2),
+                          )
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        seat,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          /// LEGEND
+          Padding(
+            padding: EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _legendItem(Colors.green, "Available"),
+                _legendItem(Colors.blue, "Selected"),
+                _legendItem(Colors.red, "Booked"),
+              ],
+            ),
+          ),
+        ],
       ),
+
+      /// BOOK BUTTON
       bottomNavigationBar: Padding(
         padding: EdgeInsets.all(16),
         child: ElevatedButton(
           onPressed: selectedSeats.isEmpty
               ? null
               : () {
-                  // Navigate to payment page with selected seats
                   Navigator.pushNamed(
                     context,
                     "/payment",
@@ -137,11 +163,35 @@ class _SeatsPageState extends State<SeatsPage> {
                     },
                   );
                 },
-          child: Text("Book Selected Seats (${selectedSeats.length})"),
+          child: Text(
+            "Book Selected Seats (${selectedSeats.length})",
+            style: TextStyle(fontSize: 18),
+          ),
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
         ),
-),
+      ),
+    );
+  }
 
+  Widget _legendItem(Color color, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          decoration:
+              BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+        ),
+        SizedBox(width: 8),
+        Text(text),
+      ],
     );
   }
 }
+
 

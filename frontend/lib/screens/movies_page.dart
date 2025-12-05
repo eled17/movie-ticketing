@@ -40,9 +40,11 @@ class _MoviesPageState extends State<MoviesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text("Movies"),
+        title: const Text("Now Showing 🎬"),
         centerTitle: true,
+        elevation: 0,
       ),
       body: FutureBuilder<List<Movie>>(
         future: futureMovies,
@@ -60,18 +62,24 @@ class _MoviesPageState extends State<MoviesPage> {
           }
 
           final movies = snapshot.data!;
+
           return Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20),
             child: GridView.builder(
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: MediaQuery.of(context).size.width > 600 ? 3 : 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 2 / 3,
+                crossAxisCount: MediaQuery.of(context).size.width > 900
+                    ? 4
+                    : MediaQuery.of(context).size.width > 600
+                        ? 3
+                        : 2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 0.62,
               ),
               itemCount: movies.length,
               itemBuilder: (context, index) {
                 final movie = movies[index];
+
                 return GestureDetector(
                   onTap: () {
                     Navigator.pushNamed(
@@ -80,51 +88,85 @@ class _MoviesPageState extends State<MoviesPage> {
                       arguments: movie.id,
                     );
                   },
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 6,
-                    shadowColor: Colors.black26,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Movie poster placeholder
-                        Container(
-                          height: 180,
-                          decoration: BoxDecoration(
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(18),
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          /// POSTER IMAGE
+                          ClipRRect(
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16)),
-                            image: const DecorationImage(
-                              image: AssetImage("movie-icon2.jpg"),
+                                top: Radius.circular(18)),
+                            child: Image.asset(
+                              "movie-icon2.jpg",
+                              height: 220,
                               fit: BoxFit.cover,
                             ),
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                movie.title,
-                                style: const TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+
+                          /// TITLE + DESCRIPTION
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    movie.title,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    movie.description,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const Spacer(),
+
+                                  /// BUTTON
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        "/showtimes",
+                                        arguments: movie.id,
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: const Text("View Showtimes"),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                movie.description,
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.grey[700]),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -136,4 +178,5 @@ class _MoviesPageState extends State<MoviesPage> {
     );
   }
 }
+
 

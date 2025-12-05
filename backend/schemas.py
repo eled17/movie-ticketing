@@ -35,6 +35,7 @@ class Showtime(ShowtimeBase):
 class TicketBase(BaseModel):
     showtime_id: int
     seat_number: str
+    user_id: int
 
 
 class TicketCreate(TicketBase):
@@ -42,6 +43,20 @@ class TicketCreate(TicketBase):
 
 
 class Ticket(TicketBase):
+    id: int
+
+    class Config:
+        orm_mode = True
+
+
+class UserBase(BaseModel):
+    email: str
+    password: str  # stored plain text as you requested
+
+class UserCreate(UserBase):
+    pass
+
+class User(UserBase):
     id: int
 
     class Config:

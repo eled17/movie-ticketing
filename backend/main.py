@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import models, schemas, crud
 from database import SessionLocal, engine
 
+# models.Base.metadata.drop_all(bind=engine)
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -55,3 +56,27 @@ def get_tickets(db: Session = Depends(get_db)):
 def read_tickets(showtime_id: int, db: Session = Depends(get_db)):
     tickets = crud.get_tickets_by_showtime(db, showtime_id)
     return [{"seat_number": t.seat_number} for t in tickets]
+
+@app.get("/tickets/user/{user_id}", response_model=list[schemas.Ticket])
+def get_tickets_by_user(user_id: int, db: Session = Depends(get_db)):
+    return crud.get_tickets_by_user(db, user_id)
+
+@app.post("/register", response_model=schemas.User)
+def register_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    return crud.create_user(db, user.email, user.password)
+
+@app.post("/login")
+def login_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user.email, user.password)
+    if not db_user:
+        return {"error": "Invalid credentials"}
+    return {"user_id": db_user.id, "email": db_user.email}
+
+@app.get("/tickets/user/{user_id}", response_model=list[schemas.Ticket])
+def get_user_tickets(user_id: int, db: Session = Depends(get_db)):
+    tickets = db.query(models.Ticket).filter(models.Ticket.user_id == user_id).all()
+    return tickets
+
+
+
+

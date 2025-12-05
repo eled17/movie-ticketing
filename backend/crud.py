@@ -35,3 +35,20 @@ def get_tickets(db: Session):
 
 def get_tickets_by_showtime(db: Session, showtime_id: int):
     return db.query(models.Ticket).filter(models.Ticket.showtime_id == showtime_id).all()
+
+def get_tickets_by_user(db: Session, user_id: int):
+    return db.query(models.Ticket).filter(models.Ticket.user_id == user_id).all()
+
+def create_user(db: Session, email: str, password: str):
+    db_user = models.User(email=email, password=password)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def get_user(db: Session, email: str, password: str):
+    return db.query(models.User).filter(models.User.email==email, models.User.password==password).first()
+
+def get_user_by_id(db: Session, user_id: int):
+    return db.query(models.User).filter(models.User.id==user_id).first()
+
